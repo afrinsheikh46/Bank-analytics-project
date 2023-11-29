@@ -1,0 +1,66 @@
+create database bank;
+
+use bank;
+
+truncate table finance_1;
+
+LOAD DATA INFILE 'C:\\ProgramData\\MySQL\\MySQL Server 8.0\\Uploads\\Finance_1.csv'
+INTO TABLE finance_1
+FIELDS TERMINATED BY ',' 
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+select count(*) from finance_1;
+
+select * from Finance_1;
+
+select count(*) from finance_2;
+
+select * from Finance_2;
+
+-- Year wise loan amount Stats
+SELECT
+  YEAR(STR_TO_DATE(issue_d, "%b-%yy")) AS 'Years',
+  SUM(loan_amnt) AS 'Loan Amount'
+FROM Finance_1
+GROUP BY Years
+ORDER BY Years;
+
+
+-- Grade and sub grade wise revol_bal
+SELECT 
+    finance_1.Sub_grade,
+    SUM(finance_2.revol_bal) as 'Total Revol Bal'
+FROM finance_1
+JOIN finance_2 ON finance_1.id = finance_2.id
+GROUP BY finance_1.Sub_grade
+ORDER BY finance_1.Sub_grade;
+
+-- Total Payment for Verified Status Vs Total Payment for Non Verified Status
+Select
+    finance_1.Verification_status,
+    ROUND(SUM(finance_2.total_pymnt)) as `Total Payment`
+FROM finance_1
+JOIN finance_2 ON finance_1.id = finance_2.id
+WHERE finance_1.verification_status IN ('Verified', 'Not Verified')
+GROUP BY finance_1.Verification_status;
+
+
+-- State wise and month wise loan status
+SELECT addr_state, last_credit_pull_d, MAX(loan_status) AS loan_status
+FROM Finance_1
+INNER JOIN Finance_2 ON Finance_1.id = Finance_2.id
+GROUP BY addr_state, last_credit_pull_d
+ORDER BY addr_state;
+
+-- Home ownership Vs last payment date stats
+Select
+YEAR(STR_TO_DATE(finance_2.last_pymnt_d, "%b-%yy")) as 'Years'
+,finance_1.home_ownership
+,round(sum(finance_2.last_pymnt_amnt)) as 'Total_Payment'
+from finance_1 join finance_2 on finance_1.id = finance_2.id
+where finance_1.home_ownership in ('RENT', 'MORTGAGE', 'OWN')
+group by finance_1.home_ownership, years
+having round(sum(finance_2.last_pymnt_amnt)) != 0
+order by YEAR(STR_TO_DATE(finance_2.last_pymnt_d, "%b-%yy")), round(sum(finance_2.last_pymnt_amnt)) desc;
